@@ -1,15 +1,17 @@
 package com.example.android.globely
 
 import android.content.res.Resources
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Transformations.map
 import com.example.android.globely.databinding.ActivityMapsBinding
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.geojson.GeoJsonLayer
+import com.google.maps.android.geojson.GeoJsonPolygonStyle
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -47,5 +49,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         } catch (e: Resources.NotFoundException) {
             Log.e("MapsActivityRaw", "Can't find style.", e)
         }
+
+        val layer = GeoJsonLayer(mMap, R.raw.croatia, applicationContext)
+
+        val style: GeoJsonPolygonStyle = layer.defaultPolygonStyle
+        style.fillColor = Color.parseColor("#77ff0000")
+        style.strokeColor = Color.parseColor("#77ff0000")
+        style.strokeWidth = 1f
+
+        layer.addLayerToMap()
     }
 }
