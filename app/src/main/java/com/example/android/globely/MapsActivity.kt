@@ -50,11 +50,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             Log.e("MapsActivityRaw", "Can't find style.", e)
         }
 
-        val layer = GeoJsonLayer(mMap, R.raw.croatia, applicationContext)
+        val layer = GeoJsonLayer(mMap, R.raw.france, applicationContext)
 
         val style: GeoJsonPolygonStyle = layer.defaultPolygonStyle
-        style.fillColor = Color.parseColor("#77ff0000")
-        style.strokeColor = Color.parseColor("#77ff0000")
+        style.fillColor = Color.parseColor("#44ff0000")
+        style.strokeColor = Color.parseColor("#44ff0000")
         style.strokeWidth = 1f
 
         layer.addLayerToMap()
