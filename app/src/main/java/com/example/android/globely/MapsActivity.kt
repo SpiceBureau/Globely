@@ -1,8 +1,10 @@
 package com.example.android.globely
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
+import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,6 +14,7 @@ import android.widget.AutoCompleteTextView
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
 import com.example.android.globely.databinding.MapActivityBinding
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -22,6 +25,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.geojson.GeoJsonLayer
 import com.google.maps.android.geojson.GeoJsonPolygonStyle
+import kotlin.math.roundToInt
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -52,6 +56,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         "bulgaria",
         "burkina faso",
         "burundi",
+        "canada",
         "cabo verde",
         "cambodia",
         "cameroon",
@@ -224,6 +229,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         "angola",
         "antigua and barbuda")
     private val coordinatesOfCountries: Map<String, LatLng> = mapOf(
+        "canada" to LatLng(56.4428473594893, -102.76011627882923),
         "portugal" to LatLng(40.10118442734383, -7.8721837198595620),
         "spain" to LatLng(40.18351849779206, -3.384500958570459),
         "andorra" to LatLng(42.55245662922965, 1.6006361364955313),
@@ -423,6 +429,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         "antigua and barbuda" to LatLng(17.170638520402743, -61.79109658413467),
     )
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -455,9 +462,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         game()
     }
 
+    @SuppressLint("Range")
     private fun game(){
-        val ibSearch = findViewById<ImageButton>(R.id.ibSearch)
+        val solutionCountry = countries.random().toString()
+        val solutionCountryCoord = coordinatesOfCountries[solutionCountry]!!
+        Toast.makeText(applicationContext, solutionCountry, Toast.LENGTH_SHORT).show()
 
+        val ibSearch = findViewById<ImageButton>(R.id.ibSearch)
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_dropdown_item_1line, countries
@@ -470,24 +481,62 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             var inputCountry = edInputField.text.toString()
             inputCountry = inputCountry.replace(" ", "_")
             val id = resources.getIdentifier(inputCountry, "raw", packageName)
-            Toast.makeText(applicationContext, id.toString(), Toast.LENGTH_SHORT).show()
 
             if (id in countriesOnMap){
                 Toast.makeText(applicationContext, "Country already on the map", Toast.LENGTH_SHORT).show()
             }
-            else {
+            if (id == 0){
+                Toast.makeText(applicationContext, "Invalid country", Toast.LENGTH_SHORT).show()
+            }
+            if (solutionCountry == inputCountry){
+                val inputCountryCoord = coordinatesOfCountries[inputCountry]!!
+                Toast.makeText(applicationContext, "Correct!", Toast.LENGTH_SHORT).show()
+
                 edInputField.setText("")
                 val newCountryLayer = GeoJsonLayer(mMap, id, applicationContext)
                 val style: GeoJsonPolygonStyle = newCountryLayer.defaultPolygonStyle
-                style.fillColor = Color.parseColor("#44ff0000")
-                style.strokeColor = Color.parseColor("#44ff0000")
+                style.fillColor = Color.parseColor("#FF00ff00")
+                style.strokeColor = Color.parseColor("#FF00ff00")
                 style.strokeWidth = 1f
 
                 newCountryLayer.addLayerToMap()
 
-                val markerCoord = coordinatesOfCountries[inputCountry]
-                val zoomLevel = 4f
-                val cu = CameraUpdateFactory.newLatLngZoom(markerCoord!!, zoomLevel)
+                val cameraPosition = CameraPosition.Builder()
+                    .target(inputCountryCoord)
+                    .build()
+                val cu = CameraUpdateFactory.newCameraPosition(cameraPosition)
+                mMap.animateCamera(cu)
+
+                ibSearch.visibility = View.GONE
+            }
+            else {
+                inputCountry = inputCountry.replace("_", " ")
+                edInputField.setText("")
+
+                val inputCountryCoord = coordinatesOfCountries[inputCountry]!!
+                val distanceBetweenCountries = FloatArray(1)
+                Location.distanceBetween(
+                    solutionCountryCoord.latitude, solutionCountryCoord.longitude,
+                    inputCountryCoord.latitude, inputCountryCoord.longitude,
+                    distanceBetweenCountries)
+
+                var colorFactor = (distanceBetweenCountries[0]/1000 - 10 ) / 10026
+                if (colorFactor > 1){
+                    colorFactor = 1.0F
+                }
+                Toast.makeText(applicationContext, colorFactor.toString(), Toast.LENGTH_SHORT).show()
+                val newCountryLayer = GeoJsonLayer(mMap, id, applicationContext)
+                val style: GeoJsonPolygonStyle = newCountryLayer.defaultPolygonStyle
+                style.fillColor = ColorUtils.blendARGB(Color.parseColor("#bb00ff00"), Color.parseColor("#bbff0000"), colorFactor)
+                style.strokeColor = ColorUtils.blendARGB(Color.parseColor("#bb00ff00"), Color.parseColor("#bbff0000"), colorFactor)
+                style.strokeWidth = 1f
+
+                newCountryLayer.addLayerToMap()
+
+                val cameraPosition = CameraPosition.Builder()
+                    .target(inputCountryCoord)
+                    .build()
+                val cu = CameraUpdateFactory.newCameraPosition(cameraPosition)
                 mMap.animateCamera(cu)
 
                 countriesOnMap.add(id)
@@ -499,5 +548,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
     }
-
+    fun manipulateColor(color: Int, factor: Float): Int {
+        val a = Color.alpha(color)
+        val r = (Color.red(color) * factor).roundToInt()
+        val g = (Color.green(color) * factor).roundToInt()
+        val b = (Color.blue(color) * factor).roundToInt()
+        return Color.argb(
+            a,
+            r.coerceAtMost(255),
+            g.coerceAtMost(255),
+            b.coerceAtMost(255)
+        )
+    }
 }
