@@ -465,7 +465,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     @SuppressLint("Range")
     private fun game(){
-        var solutionCountry = countries.random().toString()
+        var solutionCountry = "austria"
         val solutionCountryCoord = coordinatesOfCountries[solutionCountry]!!
 
         val ibSearch = findViewById<ImageButton>(R.id.ibSearch)
@@ -479,7 +479,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         ibSearch.setOnClickListener {
             if (gameDone){
                 solutionCountry = countries.random().toString()
-                ibSearch.setImageResource(R.drawable.outline_replay_24)
+                ibSearch.setImageResource(R.drawable.outline_search_24)
                 gameDone = false
                 countriesOnMap.clear()
                 mMap.clear()
