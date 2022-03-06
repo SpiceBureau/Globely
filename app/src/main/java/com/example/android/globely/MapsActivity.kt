@@ -30,6 +30,7 @@ import kotlin.math.roundToInt
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
+    private var gameDone: Boolean = false
     private lateinit var mMap: GoogleMap
     private lateinit var binding: MapActivityBinding
     private var countriesOnMap: MutableList<Int> = mutableListOf()
@@ -68,7 +69,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         "comoros",
         "congo",
         "costa rica",
-        "côte d'Ivoire",
+        "cote d'Ivoire",
         "cuba",
         "croatia",
         "cyprus",
@@ -464,9 +465,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     @SuppressLint("Range")
     private fun game(){
-        val solutionCountry = countries.random().toString()
+        var solutionCountry = countries.random().toString()
         val solutionCountryCoord = coordinatesOfCountries[solutionCountry]!!
-        Toast.makeText(applicationContext, solutionCountry, Toast.LENGTH_SHORT).show()
 
         val ibSearch = findViewById<ImageButton>(R.id.ibSearch)
         val adapter = ArrayAdapter(
@@ -477,10 +477,19 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         edInputField.setAdapter(adapter)
 
         ibSearch.setOnClickListener {
+            if (gameDone){
+                solutionCountry = countries.random().toString()
+                ibSearch.setImageResource(R.drawable.outline_replay_24)
+                gameDone = false
+                countriesOnMap.clear()
+                mMap.clear()
+                Toast.makeText(applicationContext, "New game started", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             edInputField.hideKeyboard()
-            var inputCountry = edInputField.text.toString()
-            inputCountry = inputCountry.replace(" ", "_")
-            val id = resources.getIdentifier(inputCountry, "raw", packageName)
+
+            val inputCountry = edInputField.text.toString()
+            val id = resources.getIdentifier(inputCountry.replace(" ", "_"), "raw", packageName)
 
             if (id in countriesOnMap){
                 Toast.makeText(applicationContext, "Country already on the map", Toast.LENGTH_SHORT).show()
@@ -507,10 +516,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 val cu = CameraUpdateFactory.newCameraPosition(cameraPosition)
                 mMap.animateCamera(cu)
 
-                ibSearch.visibility = View.GONE
+                ibSearch.setImageResource(R.drawable.outline_replay_24)
+                gameDone = true
             }
             else {
-                inputCountry = inputCountry.replace("_", " ")
+                /*inputCountry = inputCountry.replace("_", " ")*/
                 edInputField.setText("")
 
                 val inputCountryCoord = coordinatesOfCountries[inputCountry]!!
@@ -520,11 +530,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     inputCountryCoord.latitude, inputCountryCoord.longitude,
                     distanceBetweenCountries)
 
-                var colorFactor = (distanceBetweenCountries[0]/1000 - 10 ) / 10026
+                var colorFactor = (distanceBetweenCountries[0]/1000 - 10 ) / 3526
                 if (colorFactor > 1){
                     colorFactor = 1.0F
                 }
-                Toast.makeText(applicationContext, colorFactor.toString(), Toast.LENGTH_SHORT).show()
                 val newCountryLayer = GeoJsonLayer(mMap, id, applicationContext)
                 val style: GeoJsonPolygonStyle = newCountryLayer.defaultPolygonStyle
                 style.fillColor = ColorUtils.blendARGB(Color.parseColor("#bb00ff00"), Color.parseColor("#bbff0000"), colorFactor)
@@ -547,17 +556,5 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     fun View.hideKeyboard() {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
-    }
-    fun manipulateColor(color: Int, factor: Float): Int {
-        val a = Color.alpha(color)
-        val r = (Color.red(color) * factor).roundToInt()
-        val g = (Color.green(color) * factor).roundToInt()
-        val b = (Color.blue(color) * factor).roundToInt()
-        return Color.argb(
-            a,
-            r.coerceAtMost(255),
-            g.coerceAtMost(255),
-            b.coerceAtMost(255)
-        )
     }
 }
