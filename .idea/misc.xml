@@ -3,8 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/Users/Dominik/Desktop/Globely/app/src/main/res/drawable/outline_search_24.xml" value="0.2515" />
+        <entry key="..\:/Users/Dominik/Desktop/Globely/app/src/main/res/drawable/rounded_edit_text.xml" value="0.2515" />
         <entry key="..\:/Users/Dominik/Desktop/Globely/app/src/main/res/layout/activity_main.xml" value="0.22826086956521738" />
         <entry key="..\:/Users/Dominik/Desktop/Globely/app/src/main/res/layout/activity_maps.xml" value="0.22826086956521738" />
+        <entry key="..\:/Users/Dominik/Desktop/Globely/app/src/main/res/layout/map_activity.xml" value="0.264" />
       </map>
     </option>
   </component>
