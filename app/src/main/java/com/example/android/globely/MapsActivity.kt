@@ -25,7 +25,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.geojson.GeoJsonLayer
 import com.google.maps.android.geojson.GeoJsonPolygonStyle
-import kotlin.math.roundToInt
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
