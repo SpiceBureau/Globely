@@ -25,7 +25,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.geojson.GeoJsonLayer
 import com.google.maps.android.geojson.GeoJsonPolygonStyle
-
+import org.json.JSONObject
+import java.io.IOException
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -438,6 +439,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         supportActionBar?.hide()
 
+        val json = loadJSONFromAsset(this)
+        val obj = JSONObject(json!!)
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -555,5 +559,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     fun View.hideKeyboard() {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
+    }
+
+    fun loadJSONFromAsset(context: Context): String? {
+        var json: String? = null
+        json = try {
+            val `is` = context.assets.open("countryCoordJSON.json")
+            val size = `is`.available()
+            val buffer = ByteArray(size)
+            `is`.read(buffer)
+            `is`.close()
+            String(buffer, Charsets.UTF_8)
+        } catch (ex: IOException) {
+            ex.printStackTrace()
+            return null
+        }
+        return json
     }
 }
