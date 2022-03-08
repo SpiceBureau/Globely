@@ -2,6 +2,7 @@ package com.example.android.globely
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.AssetManager
 import android.content.res.Resources
 import android.graphics.Color
 import android.location.Location
@@ -23,10 +24,13 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.gson.JsonArray
 import com.google.maps.android.geojson.GeoJsonLayer
 import com.google.maps.android.geojson.GeoJsonPolygonStyle
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.io.OutputStreamWriter
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -34,6 +38,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var mMap: GoogleMap
     private lateinit var binding: MapActivityBinding
     private var countriesOnMap: MutableList<Int> = mutableListOf()
+    lateinit var jsonString: String
+    lateinit var jsonArray: JSONArray
+    lateinit var jsonObject: JSONObject
     private val countries: List<String> = listOf(
         "argentina",
         "armenia",
@@ -437,11 +444,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         binding = MapActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        jsonString = applicationContext.assets.readFile("countrycoordJSONOBJ.json")
+        jsonArray = JSONArray(jsonString)
+        jsonObject = jsonArray[0] as JSONObject
+
         supportActionBar?.hide()
-
-        val json = loadJSONFromAsset(this)
-        val obj = JSONObject(json!!)
-
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -468,8 +475,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     @SuppressLint("Range")
     private fun game(){
-        var solutionCountry = "austria"
-        val solutionCountryCoord = coordinatesOfCountries[solutionCountry]!!
+        var solutionCountry = countries.random().toString()
 
         val ibSearch = findViewById<ImageButton>(R.id.ibSearch)
         val adapter = ArrayAdapter(
@@ -492,16 +498,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             edInputField.hideKeyboard()
 
             val inputCountry = edInputField.text.toString()
-            val id = resources.getIdentifier(inputCountry.replace(" ", "_"), "raw", packageName)
+            val id = resources.getIdentifier(inputCountry.replace(" ", "_").replace("-", "_"), "raw", packageName)
 
             if (id in countriesOnMap){
                 Toast.makeText(applicationContext, "Country already on the map", Toast.LENGTH_SHORT).show()
             }
             if (id == 0){
                 Toast.makeText(applicationContext, "Invalid country", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
             if (solutionCountry == inputCountry){
-                val inputCountryCoord = coordinatesOfCountries[inputCountry]!!
+                val cameraPositionOnCountry = coordinatesOfCountries[inputCountry]!!
                 Toast.makeText(applicationContext, "Correct!", Toast.LENGTH_SHORT).show()
 
                 edInputField.setText("")
@@ -514,7 +521,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 newCountryLayer.addLayerToMap()
 
                 val cameraPosition = CameraPosition.Builder()
-                    .target(inputCountryCoord)
+                    .target(cameraPositionOnCountry)
                     .build()
                 val cu = CameraUpdateFactory.newCameraPosition(cameraPosition)
                 mMap.animateCamera(cu)
@@ -523,19 +530,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 gameDone = true
             }
             else {
-                /*inputCountry = inputCountry.replace("_", " ")*/
                 edInputField.setText("")
 
-                val inputCountryCoord = coordinatesOfCountries[inputCountry]!!
-                val distanceBetweenCountries = FloatArray(1)
+                val cameraPositionOnCountry = coordinatesOfCountries[inputCountry]!!
+
+                val distanceBetweenCountries = getDistanceBetween(inputCountry, solutionCountry)
+                /*val distanceBetweenCountries = FloatArray(1)
                 Location.distanceBetween(
                     solutionCountryCoord.latitude, solutionCountryCoord.longitude,
-                    inputCountryCoord.latitude, inputCountryCoord.longitude,
-                    distanceBetweenCountries)
+                    cameraPositionOnCountry.latitude, cameraPositionOnCountry.longitude,
+                    distanceBetweenCountries)*/
 
-                var colorFactor = (distanceBetweenCountries[0]/1000 - 10 ) / 3526
+                var colorFactor = distanceBetweenCountries / 5700
                 if (colorFactor > 1){
-                    colorFactor = 1.0F
+                    colorFactor = 1f
                 }
                 val newCountryLayer = GeoJsonLayer(mMap, id, applicationContext)
                 val style: GeoJsonPolygonStyle = newCountryLayer.defaultPolygonStyle
@@ -546,7 +554,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 newCountryLayer.addLayerToMap()
 
                 val cameraPosition = CameraPosition.Builder()
-                    .target(inputCountryCoord)
+                    .target(cameraPositionOnCountry)
                     .build()
                 val cu = CameraUpdateFactory.newCameraPosition(cameraPosition)
                 mMap.animateCamera(cu)
@@ -555,25 +563,37 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
-
     fun View.hideKeyboard() {
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(windowToken, 0)
     }
 
-    fun loadJSONFromAsset(context: Context): String? {
-        var json: String? = null
-        json = try {
-            val `is` = context.assets.open("countryCoordJSON.json")
-            val size = `is`.available()
-            val buffer = ByteArray(size)
-            `is`.read(buffer)
-            `is`.close()
-            String(buffer, Charsets.UTF_8)
-        } catch (ex: IOException) {
-            ex.printStackTrace()
-            return null
+    fun AssetManager.readFile(fileName: String) = open(fileName)
+        .bufferedReader()
+        .use { it.readText() }
+
+    fun getDistanceBetween(inputCountry: String, solutionCountry: String): Float{
+        val inputCountryCoords = jsonObject.get(inputCountry) as JSONArray
+        val solutionCountryCoords = jsonObject.get(solutionCountry) as JSONArray
+
+        val distanceBetweenCountries = FloatArray(1)
+        var minDistance = 21000.0f
+        for (i in 1..inputCountryCoords.length()){
+            val inputCountryCoord = inputCountryCoords[i-1] as JSONArray
+            for (j in 1..solutionCountryCoords.length()){
+                val solutionCountryCoord = solutionCountryCoords[j-1] as JSONArray
+
+                Location.distanceBetween(
+                    solutionCountryCoord[0] as Double, solutionCountryCoord[1] as Double,
+                    inputCountryCoord[0] as Double, inputCountryCoord[1] as Double,
+                    distanceBetweenCountries)
+
+                val distanceBetweenCountriesInKm = distanceBetweenCountries[0] / 1000
+                if (distanceBetweenCountriesInKm < minDistance){
+                    minDistance = distanceBetweenCountriesInKm
+                }
+            }
         }
-        return json
+        return  minDistance
     }
 }
